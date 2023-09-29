@@ -8,7 +8,7 @@
 from typing import List, Tuple
 
 from metagpt.actions import Action, ActionOutput
-from metagpt.actions.search_and_summarize import SearchAndSummarize
+from metagpt.actions.search_and_summarize import SearchAndSummarize, SEARCH_AND_SUMMARIZE_SYSTEM_EN_US
 from metagpt.logs import logger
 
 PROMPT_TEMPLATE = """
@@ -19,53 +19,34 @@ PROMPT_TEMPLATE = """
 ## Search Information
 {search_information}
 
-## mermaid quadrantChart code syntax example. DONT USE QUOTO IN CODE DUE TO INVALID SYNTAX. Replace the <Campain X> with REAL COMPETITOR NAME
-```mermaid
-quadrantChart
-    title Reach and engagement of campaigns
-    x-axis Low Reach --> High Reach
-    y-axis Low Engagement --> High Engagement
-    quadrant-1 We should expand
-    quadrant-2 Need to promote
-    quadrant-3 Re-evaluate
-    quadrant-4 May be improved
-    "Campaign: A": [0.3, 0.6]
-    "Campaign B": [0.45, 0.23]
-    "Campaign C": [0.57, 0.69]
-    "Campaign D": [0.78, 0.34]
-    "Campaign E": [0.40, 0.34]
-    "Campaign F": [0.35, 0.78]
-    "Our Target Product": [0.5, 0.6]
-```
-
 ## Format example
 {format_example}
 -----
-Role: You are a professional product manager; the goal is to design a concise, usable, efficient product
+Role: You are a professional business analyst; the goal is to to analyze the business owner's requests and identify opportunities for improvement to enhance efficiency, productivity, and profitability.
 Requirements: According to the context, fill in the following missing information, note that each sections are returned in Python code triple quote form seperatedly. If the requirements are unclear, ensure minimum viability and avoid excessive design
 ATTENTION: Use '##' to SPLIT SECTIONS, not '#'. AND '## <SECTION_NAME>' SHOULD WRITE BEFORE the code and triple quote. Output carefully referenced "Format example" in format.
 
-## Original Requirements: Provide as Plain text, place the polished complete original requirements here
+## Business Owner Request: Provide as Plain text, place the polished complete original business owner request here
 
-## Product Goals: Provided as Python list[str], up to 3 clear, orthogonal product goals. If the requirement itself is simple, the goal should also be simple
+## Business Case Validation: Provide as Plain text. Describe the business case or use case provided by the client. Also, briefly state the whether the use case is data engineering related or not and explain why. If it is data engineering related, mention what kind of tasks must be performed and by what roles. 
 
-## User Stories: Provided as Python list[str], up to 5 scenario-based user stories, If the requirement itself is simple, the user stories should also be less
+## Product Goals: Provided as Python list[str], around 3 to 5 clear, orthogonal product goals. If the requirement itself is simple, the goal should also be simple
 
-## Competitive Analysis: Provided as Python list[str], up to 7 competitive product analyses, consider as similar competitors as possible
-
-## Competitive Quadrant Chart: Use mermaid quadrantChart code syntax. up to 14 competitive products. Translation: Distribute these competitor scores evenly between 0 and 1, trying to conform to a normal distribution centered around 0.5 as much as possible.
+## User Stories: Provided as Python list[str], around 5 to 10 scenario-based user stories, If the requirement itself is simple, the user stories should also be less. Try to include all stakeholders in the user stories.
 
 ## Requirement Analysis: Provide as Plain text. Be simple. LESS IS MORE. Make your requirements less dumb. Delete the parts unnessasery.
 
-## Requirement Pool: Provided as Python list[str, str], the parameters are requirement description, priority(P0/P1/P2), respectively, comply with PEP standards; no more than 5 requirements and consider to make its difficulty lower
+## Requirement Pool: Provided as Python list[str], around 5 to 8 requirements and consider using tools mentioned in requirements.
 
-## UI Design draft: Provide as Plain text. Be simple. Describe the elements and functions, also provide a simple style description and layout description.
-## Anything UNCLEAR: Provide as Plain text. Make clear here.
+## Anything Unclear: Provide as Plain text. List any unclear or vague points in the requirements, and provide a brief description of the assumptions made in the solution.
 """
 FORMAT_EXAMPLE = """
 ---
-## Original Requirements
-The boss ... 
+## Business Owner Request
+The business owner ... 
+
+## Business Case Validation
+The business case ...
 
 ## Product Goals
 ```python
@@ -81,67 +62,45 @@ The boss ...
 ]
 ```
 
-## Competitive Analysis
-```python
-[
-    "Python Snake Game: ...",
-]
-```
-
-## Competitive Quadrant Chart
-```mermaid
-quadrantChart
-    title Reach and engagement of campaigns
-    ...
-    "Our Target Product": [0.6, 0.7]
-```
-
 ## Requirement Analysis
 The product should be a ...
 
 ## Requirement Pool
 ```python
 [
-    ("End game ...", "P0")
+    "End game ...",
 ]
 ```
 
-## UI Design draft
-Give a basic function description, and a draft
-
-## Anything UNCLEAR
-There are no unclear points.
+## Anything Unclear
+Either provide a brief list of the unclear points or state that there are no unclear points.
 ---
 """
 OUTPUT_MAPPING = {
-    "Original Requirements": (str, ...),
+    "Business Owner Request": (str, ...),
+    "Business Case Validation": (str, ...),
     "Product Goals": (List[str], ...),
     "User Stories": (List[str], ...),
-    "Competitive Analysis": (List[str], ...),
-    "Competitive Quadrant Chart": (str, ...),
     "Requirement Analysis": (str, ...),
-    "Requirement Pool": (List[Tuple[str, str]], ...),
-    "UI Design draft":(str, ...),
-    "Anything UNCLEAR": (str, ...),
+    "Requirement Pool": (List[str], ...),
+    "Anything Unclear": (str, ...),
 }
-
 
 class WritePRD(Action):
     def __init__(self, name="", context=None, llm=None):
         super().__init__(name, context, llm)
 
+
     async def run(self, requirements, *args, **kwargs) -> ActionOutput:
         sas = SearchAndSummarize()
-        # rsp = await sas.run(context=requirements, system_text=SEARCH_AND_SUMMARIZE_SYSTEM_EN_US)
-        rsp = ""
+        rsp = await sas.run(context=requirements, system_text=SEARCH_AND_SUMMARIZE_SYSTEM_EN_US)
+        # rsp = ""
         info = f"### Search Results\n{sas.result}\n\n### Search Summary\n{rsp}"
-        if sas.result:
-            logger.info(sas.result)
-            logger.info(rsp)
+        # if sas.result:
+        #     logger.info(sas.result)
+        #     logger.info(rsp)
 
-        prompt = PROMPT_TEMPLATE.format(requirements=requirements, search_information=info,
-                                        format_example=FORMAT_EXAMPLE)
+        prompt = PROMPT_TEMPLATE.format(requirements=requirements, search_information=info, format_example=FORMAT_EXAMPLE)
         logger.debug(prompt)
         prd = await self._aask_v1(prompt, "prd", OUTPUT_MAPPING)
         return prd
-    

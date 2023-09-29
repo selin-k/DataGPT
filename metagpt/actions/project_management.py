@@ -18,7 +18,7 @@ PROMPT_TEMPLATE = '''
 ## Format example
 {format_example}
 -----
-Role: You are a project manager; the goal is to break down tasks according to PRD/technical design, give a task list, and analyze task dependencies to start with the prerequisite modules
+Role: You are a data engineer; your initial goal is to break down tasks according to PRD/technical design, give a task list, and analyze task dependencies to start with the prerequisite modules
 Requirements: Based on the context, fill in the following missing information, note that all sections are returned in Python code triple quote form seperatedly. Here the granularity of the task is a file, if there are any missing files, you can supplement them
 Attention: Use '##' to split sections, not '#', and '## <SECTION_NAME>' SHOULD WRITE BEFORE the code and triple quote.
 
@@ -74,14 +74,14 @@ description: A JSON object ...
 ## Task list
 ```python
 [
-    "game.py",
+    "main.py",
 ]
 ```
 
 ## Shared Knowledge
 ```python
 """
-'game.py' contains ...
+'main.py' contains ...
 """
 ```
 

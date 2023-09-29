@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from metagpt.memory import Memory
 from metagpt.roles import Role
 from metagpt.schema import Message
+from metagpt.logs import logger
 
 
 class Environment(BaseModel):
@@ -50,7 +51,7 @@ class Environment(BaseModel):
         self.memory.add(message)
         self.history += f"\n{message}"
 
-    async def run(self, k=1):
+    async def run(self, k=3):
         """处理一次所有信息的运行
         Process all Role runs at once
         """
@@ -58,10 +59,13 @@ class Environment(BaseModel):
         # message = self.message_queue.get()
         # rsp = await self.manager.handle(message, self)
         # self.message_queue.put(rsp)
+        # logger.info("Hello world")
         for _ in range(k):
             futures = []
             for role in self.roles.values():
+                # logger.info("Current role is:")
                 future = role.run()
+                # logger.info("Future is:")
                 futures.append(future)
 
             await asyncio.gather(*futures)

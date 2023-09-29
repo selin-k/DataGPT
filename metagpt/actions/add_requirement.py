@@ -12,3 +12,10 @@ class BossRequirement(Action):
     """Boss Requirement without any implementation details"""
     async def run(self, *args, **kwargs):
         raise NotImplementedError
+    
+
+class BusinessOwnerRequest(Action):
+    """Boss Requirement without any implementation details"""
+    async def run(self, *args, **kwargs):
+        raise NotImplementedError
+
