@@ -35,5 +35,13 @@ class ProductManager(Role):
             constraints (str): Constraints or limitations for the product manager.
         """
         super().__init__(name, profile, goal, constraints)
-        self._init_actions([WritePRD])
+        write_prd = WritePRD(
+            role_definitions="""1. Data Architect: designs the ETL Batch Data Pipeline,  
+            Data Management capabilities and operationalization aspects (devops, 
+            issue management, logging and monitoring) 
+            2. Data Engineer: onboards the data, curates them, develops the transformation
+            logic for metrics to provision a denormalized data model (star schema) as defined
+            in the templates."""
+        )
+        self._init_actions([write_prd])
         self._watch([BossRequirement])

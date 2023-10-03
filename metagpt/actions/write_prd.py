@@ -11,7 +11,7 @@ from metagpt.actions import Action, ActionOutput
 from metagpt.actions.search_and_summarize import SearchAndSummarize, SEARCH_AND_SUMMARIZE_SYSTEM_EN_US
 from metagpt.logs import logger
 
-PROMPT_TEMPLATE = """
+PRD_PROMPT_TEMPLATE = """
 # Context
 ## Original Requirements
 {requirements}
@@ -21,86 +21,68 @@ PROMPT_TEMPLATE = """
 
 ## Format example
 {format_example}
+
+## Role Definitions
+{role_definitions}
 -----
-Role: You are a professional business analyst; the goal is to to analyze the business owner's requests and identify opportunities for improvement to enhance efficiency, productivity, and profitability.
-Requirements: According to the context, fill in the following missing information, note that each sections are returned in Python code triple quote form seperatedly. If the requirements are unclear, ensure minimum viability and avoid excessive design
+Role: {role}
+Requirements: {prompt_requirements}
 ATTENTION: Use '##' to SPLIT SECTIONS, not '#'. AND '## <SECTION_NAME>' SHOULD WRITE BEFORE the code and triple quote. Output carefully referenced "Format example" in format.
 
-## Business Owner Request: Provide as Plain text, place the polished complete original business owner request here
-
-## Business Case Validation: Provide as Plain text. Describe the business case or use case provided by the client. Also, briefly state the whether the use case is data engineering related or not and explain why. If it is data engineering related, mention what kind of tasks must be performed and by what roles. 
-
-## Product Goals: Provided as Python list[str], around 3 to 5 clear, orthogonal product goals. If the requirement itself is simple, the goal should also be simple
-
-## User Stories: Provided as Python list[str], around 5 to 10 scenario-based user stories, If the requirement itself is simple, the user stories should also be less. Try to include all stakeholders in the user stories.
-
-## Requirement Analysis: Provide as Plain text. Be simple. LESS IS MORE. Make your requirements less dumb. Delete the parts unnessasery.
-
-## Requirement Pool: Provided as Python list[str], around 5 to 8 requirements and consider using tools mentioned in requirements.
-
-## Anything Unclear: Provide as Plain text. List any unclear or vague points in the requirements, and provide a brief description of the assumptions made in the solution.
+{prd_report_instructions}
 """
-FORMAT_EXAMPLE = """
----
-## Business Owner Request
-The business owner ... 
 
-## Business Case Validation
-The business case ...
+PRD_REPORT_TEMPLATE = """
+## Project Request:
+{requirements}
 
-## Product Goals
-```python
-[
-    "Create a ...",
-]
-```
-
-## User Stories
-```python
-[
-    "As a user, ...",
-]
-```
-
-## Requirement Analysis
-The product should be a ...
-
-## Requirement Pool
-```python
-[
-    "End game ...",
-]
-```
-
-## Anything Unclear
-Either provide a brief list of the unclear points or state that there are no unclear points.
----
+## High-Level Project Backlog:
+{project_backlog}
 """
-OUTPUT_MAPPING = {
-    "Business Owner Request": (str, ...),
-    "Business Case Validation": (str, ...),
-    "Product Goals": (List[str], ...),
-    "User Stories": (List[str], ...),
-    "Requirement Analysis": (str, ...),
-    "Requirement Pool": (List[str], ...),
-    "Anything Unclear": (str, ...),
-}
 
 class WritePRD(Action):
-    def __init__(self, name="", context=None, llm=None):
+    def __init__(self, name="", context=None, llm=None, role_definitions=""):
         super().__init__(name, context, llm)
+        self.role_definitions = role_definitions
 
 
     async def run(self, requirements, *args, **kwargs) -> ActionOutput:
         sas = SearchAndSummarize()
         rsp = await sas.run(context=requirements, system_text=SEARCH_AND_SUMMARIZE_SYSTEM_EN_US)
-        # rsp = ""
         info = f"### Search Results\n{sas.result}\n\n### Search Summary\n{rsp}"
         # if sas.result:
         #     logger.info(sas.result)
         #     logger.info(rsp)
+        PRD_REPORT_FORMAT_EXAMPLE = PRD_REPORT_TEMPLATE.format(
+            requirements = "The project ...",
+            project_backlog = """To deliver this project the high-level outline of work to be handed off includes:
+            1. The data analyst must ...
+            2. The data architect must ...
+            3. The ... must ..."""
+        )
 
-        prompt = PROMPT_TEMPLATE.format(requirements=requirements, search_information=info, format_example=FORMAT_EXAMPLE)
-        logger.debug(prompt)
-        prd = await self._aask_v1(prompt, "prd", OUTPUT_MAPPING)
+        PRD_REPORT_INSTRUCTIONS = PRD_REPORT_TEMPLATE.format(
+            requirements = "Provide as Plain text. Place the polished complete original business owner request here.",
+            project_backlog = """Provide as Plain text. Provide a high-level backlog of the chunks of work to be handed 
+            off to the appropriate roles. If there is a list of role definitions provided in the context, use the 
+            description of what each role does to correctly delegate the tasks."""
+        )
+
+        PRD_PROMPT = PRD_PROMPT_TEMPLATE.format(
+            requirements = requirements,
+            search_information = info,
+            format_example = PRD_REPORT_FORMAT_EXAMPLE,
+            role_definitions = self.role_definitions,
+            role = """You are a professional business analyst specialized in data-engineering solutions; the goal is
+            to to analyze the business owner's requests and identify opportunities for improvement to enhance efficiency,
+            productivity, and profitability. You will make sure to consider all necessary details of building a solution 
+            to this project and break down the project into chunks and delegate work to the right people.""",
+            prompt_requirements = """According to the context, fill in the following missing information, note that 
+            each sections are returned in Python code triple quote form seperatedly. If the requirements are unclear, 
+            ensure minimum viability and avoid excessive design""",
+            prd_report_instructions = PRD_REPORT_INSTRUCTIONS
+        )
+
+        logger.debug(PRD_PROMPT)
+        prd = await self._aask_v1(PRD_PROMPT, "prd")
         return prd
