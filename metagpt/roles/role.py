@@ -89,6 +89,9 @@ class RoleContext(BaseModel):
     def history(self) -> list[Message]:
         return self.memory.get()
 
+    def __str__(self):
+        return f"Memory: {self.memory}\nLongTermMemory: {self.long_term_memory}\nState: {self.state}Todo: {self.todo}\nWatch: {self.watch}\nNews: {self.news}"
+
 
 class Role:
     """Role/Agent"""

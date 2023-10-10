@@ -24,7 +24,8 @@ class ProductManager(Role):
                  name: str = "Alice", 
                  profile: str = "Product Manager", 
                  goal: str = "Efficiently create a successful product",
-                 constraints: str = "") -> None:
+                 constraints: str = "",
+                 role_definitions: str = "") -> None:
         """
         Initializes the ProductManager role with given attributes.
         
@@ -35,13 +36,6 @@ class ProductManager(Role):
             constraints (str): Constraints or limitations for the product manager.
         """
         super().__init__(name, profile, goal, constraints)
-        write_prd = WritePRD(
-            role_definitions="""1. Data Architect: designs the ETL Batch Data Pipeline,  
-            Data Management capabilities and operationalization aspects (devops, 
-            issue management, logging and monitoring) 
-            2. Data Engineer: onboards the data, curates them, develops the transformation
-            logic for metrics to provision a denormalized data model (star schema) as defined
-            in the templates."""
-        )
+        write_prd = WritePRD(role_definitions=role_definitions)
         self._init_actions([write_prd])
         self._watch([BossRequirement])

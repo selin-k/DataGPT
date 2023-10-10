@@ -9,7 +9,7 @@ import time
 from typing import NamedTuple
 
 import openai
-from openai.error import APIConnectionError
+from openai.error import APIConnectionError, RateLimitError
 from tenacity import retry, stop_after_attempt, after_log, wait_fixed, retry_if_exception_type
 
 from metagpt.config import CONFIG
@@ -154,26 +154,39 @@ class OpenAIGPTAPI(BaseGPTAPI, RateLimiter):
         self.rpm = int(config.get("RPM", 10))
 
     async def _achat_completion_stream(self, messages: list[dict]) -> str:
-        response = await openai.ChatCompletion.acreate(**self._cons_kwargs(messages), stream=True)
+        retry_delay = 15 # Time in seconds to wait before retrying
+        max_retries = 10 # Maximum number of retries
 
-        # create variables to collect the stream of chunks
-        collected_chunks = []
-        collected_messages = []
-        # iterate through the stream of events
-        async for chunk in response:
-            collected_chunks.append(chunk)  # save the event response
-            choices = chunk["choices"]
-            if len(choices) > 0:
-                chunk_message = chunk["choices"][0].get("delta", {})  # extract the message
-                collected_messages.append(chunk_message)  # save the message
-                if "content" in chunk_message:
-                    print(chunk_message["content"], end="")
-        print()
+        for attempt in range(max_retries):
+            try:
+                response = await openai.ChatCompletion.acreate(**self._cons_kwargs(messages), stream=True)
 
-        full_reply_content = "".join([m.get("content", "") for m in collected_messages])
-        usage = self._calc_usage(messages, full_reply_content)
-        self._update_costs(usage)
-        return full_reply_content
+                # create variables to collect the stream of chunks
+                collected_chunks = []
+                collected_messages = []
+                # iterate through the stream of events
+                async for chunk in response:
+                    collected_chunks.append(chunk)  # save the event response
+                    choices = chunk["choices"]
+                    if len(choices) > 0:
+                        chunk_message = chunk["choices"][0].get("delta", {})  # extract the message
+                        collected_messages.append(chunk_message)  # save the message
+                        if "content" in chunk_message:
+                            print(chunk_message["content"], end="")
+                print()
+
+                full_reply_content = "".join([m.get("content", "") for m in collected_messages])
+                usage = self._calc_usage(messages, full_reply_content)
+                self._update_costs(usage)
+                return full_reply_content
+            
+            except RateLimitError as e:
+
+                logger.warning(f"Rate limit error: {e}. Retrying in {retry_delay} seconds...")
+                await asyncio.sleep(retry_delay)
+
+        logger.error(f"Reached maximum retries ({max_retries}) for rate limit error.")
+        raise RateLimitError("Maximum retries reached for rate limit error.")
 
     def _cons_kwargs(self, messages: list[dict]) -> dict:
         kwargs = {

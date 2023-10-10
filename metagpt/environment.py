@@ -51,7 +51,7 @@ class Environment(BaseModel):
         self.memory.add(message)
         self.history += f"\n{message}"
 
-    async def run(self, k=3):
+    async def run(self, k=4):
         """处理一次所有信息的运行
         Process all Role runs at once
         """

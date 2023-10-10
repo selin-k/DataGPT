@@ -44,10 +44,9 @@ SEARCH_AND_SUMMARIZE_PROMPT = """
 
 ### Dialogue History
 {QUERY_HISTORY}
-{QUERY}
 
 ### Current Question
-{QUERY}
+Considering your role as a {ROLE}, answer this question: {QUERY}
 
 ### Current Reply: Based on the information, please write the reply to the Question
 
@@ -113,31 +112,33 @@ class SearchAndSummarize(Action):
         self.result = ""
         super().__init__(name, context, llm)
 
-    async def run(self, context: list[Message], system_text=SEARCH_AND_SUMMARIZE_SYSTEM) -> str:
+    async def run(self, context: list[Message], system_text=SEARCH_AND_SUMMARIZE_SYSTEM, role: str="", summarize_query: str="") -> str:
         if self.search_engine is None:
             logger.warning("Configure one of SERPAPI_API_KEY, SERPER_API_KEY, GOOGLE_API_KEY to unlock full feature")
             return ""
 
         query = context[-1].content
-        # logger.debug(query)
+        logger.debug(f"Search Query: {query}")
         rsp = await self.search_engine.run(query)
         self.result = rsp
         if not rsp:
             logger.error("empty rsp...")
             return ""
-        # logger.info(rsp)
+        logger.debug(f"Search Result: {rsp}")
 
         system_prompt = [system_text]
-
+        if summarize_query == "":
+            summarize_query = str(context[-1])
+        
         prompt = SEARCH_AND_SUMMARIZE_PROMPT.format(
             # PREFIX = self.prefix,
-            ROLE=self.profile,
+            ROLE=role,
             CONTEXT=rsp,
-            QUERY_HISTORY="\n".join([str(i) for i in context[:-1]]),
-            QUERY=str(context[-1]),
+            QUERY_HISTORY=str(context[-1]),
+            QUERY=summarize_query,
         )
         result = await self._aask(prompt, system_prompt)
-        logger.debug(prompt)
-        logger.debug(result)
+        logger.debug(f"Summarize prompt {prompt}")
+        logger.debug(f"Summarize result: {result}")
         return result
     

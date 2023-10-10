@@ -20,6 +20,7 @@ class DataArchitect(Role):
                  goal: str = "Design and implement efficient, scalable, and secure data systems that meet the organization's data management and analysis needs.",
                  constraints: str = "Try to specify good open source tools as much as possible and consider budget limitations, technology capabilities, and regulatory requirements while designing and implementing the data systems.") -> None:
         """Initializes the Architect with given attributes."""
+        goal = "design the ETL Batch Data Pipeline,  Data Management capabilities and operationalization aspects (devops, issue management, logging and monitoring) "
         super().__init__(name, profile, goal, constraints)
         
         # Initialize actions specific to the Architect role

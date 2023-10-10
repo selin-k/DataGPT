@@ -86,3 +86,6 @@ class Memory:
             rsp += self.index[action]
         return rsp
     
+    def __str__(self):
+        return f"Storage: {self.storage}\nIndex: {self.index}"
+    
