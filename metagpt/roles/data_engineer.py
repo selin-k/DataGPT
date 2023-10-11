@@ -25,12 +25,12 @@ class DataEngineer(Role):
     def __init__(self, 
                  name: str = "Alex", 
                  profile: str = "Data Engineer", 
-                 goal: str = "decomposing software designs into manageable tasks, and then writing Python code that is compliant, complete, elegant, readable, extensible, and efficient in order to execute data engineering tasks such as data integration, data transformation, and data pipeline development.",
+                 goal: str = "decomposing etl designs into manageable tasks, and then writing Python code that is compliant, complete, elegant, readable, extensible, and efficient in order to execute data engineering tasks such as data integration, data transformation, and data pipeline development.",
                  constraints: str = "The code should conform to standards like PEP8 and be modular and maintainable.",
                  n_borg: int = 1, 
                  use_code_review: bool = False) -> None:
         """Initializes the Engineer role with given attributes."""
-        goal = "onboards the data, curates them, develops the transformation logic for metrics to provision a denormalized data model (star schema) as defined in the template and creates the final visualization report. The data engineer deals with all implementation tasks in a project and writes all code relating to the designed solution."
+        # goal = "ingests the data, curates them, develops the transformation logic for metrics to provision normalized or denormalized data models (3NF, star schema) as defined in the template and creates the final visualization report. The data engineer deals with all implementation tasks in a project and writes all code relating to the designed solution."
         super().__init__(name, profile, goal, constraints)
         self._init_actions([WriteCode])
         self.use_code_review = use_code_review
